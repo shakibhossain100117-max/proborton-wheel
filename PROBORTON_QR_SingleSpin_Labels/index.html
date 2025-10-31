@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PROBORTON Discount Wheel</title>
+<style>
+body {
+  font-family: 'Noto Sans Bengali', sans-serif;
+  background: radial-gradient(circle at top, #172c17, #0c160c);
+  color: #fff;
+  text-align: center;
+  padding: 20px;
+  overflow-x: hidden;
+}
+.container {
+  max-width: 640px;
+  margin: auto;
+  background: rgba(255,255,255,0.05);
+  padding: 20px;
+  border-radius: 20px;
+  box-shadow: 0 0 30px rgba(0,255,100,0.2);
+}
+h1 {
+  color: #9efc75;
+  text-shadow: 0 0 10px #00ff9c;
+}
+.logo {
+  width: 220px;
+  margin-bottom: 10px;
+}
+label {font-size: 18px;}
+input[type=text] {
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  width: 80%;
+  font-size: 18px;
+  text-align: center;
+}
+button {
+  padding: 12px 30px;
+  background: linear-gradient(90deg, #44c767, #5cb85c);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  cursor: pointer;
+  margin-top: 15px;
+}
+#wheelContainer {
+  position: relative;
+  width: 320px;
+  height: 320px;
+  margin: 30px auto;
+}
+#wheelCanvas {
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  border: 12px solid #00ff9c;
+  box-shadow: 0 0 30px #00ff9c, 0 0 60px #00ff9c inset;
+}
+#pointer {
+  width: 0; height: 0;
+  border-left: 18px solid transparent;
+  border-right: 18px solid transparent;
+  border-top: 35px solid #ffcc00;
+  margin: 10px auto;
+  filter: drop-shadow(0 0 10px #ffcc00);
+}
+#result {
+  font-size: 24px; margin-top: 20px; font-weight: bold;
+  text-shadow: 0 0 10px #00ff9c;
+}
+.flash {
+  animation: flash 0.2s alternate infinite;
+}
+@keyframes flash {
+  from { box-shadow: 0 0 20px #00ff9c; }
+  to { box-shadow: 0 0 40px #00ff9c, 0 0 20px #00ff9c inset; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <img src="proborton_logo.png" class="logo" alt="PROBORTON Logo">
+  <h1>🎡 PROBORTON ডিসকাউন্ট স্পিন হুইল 🎉</h1>
+  <label>আপনার নাম লিখুন:</label><br>
+  <input type="text" id="nameInput" placeholder="আপনার নাম"><br>
+  <button id="spinBtn" onclick="startSpin()">সাবমিট ও স্পিন করুন</button>
+  <div id="pointer"></div>
+  <div id="wheelContainer">
+    <canvas id="wheelCanvas" width="320" height="320"></canvas>
+  </div>
+  <div id="result"></div>
+</div>
+
+<audio id="spinSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_9a47d63e2e.mp3?filename=spinning-wheel-110349.mp3"></audio>
+<audio id="winSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_466ee6a9f4.mp3?filename=success-1-6297.mp3"></audio>
+
+<script>
+const discounts = [2,3,4,5,6,7,8,9,10];
+const colors = ["#9efc75","#58ff8a","#00e676","#00bcd4","#8bc34a","#4caf50","#cddc39","#76ff03","#64ffda"];
+const canvas = document.getElementById('wheelCanvas');
+const ctx = canvas.getContext('2d');
+const spinBtn = document.getElementById('spinBtn');
+const spinSound = document.getElementById('spinSound');
+const winSound = document.getElementById('winSound');
+let rotation = 0;
+let spinning = false;
+
+function drawWheel(){
+  const num = discounts.length;
+  const arc = 2 * Math.PI / num;
+  for(let i=0; i<num; i++){
+    ctx.beginPath();
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.moveTo(160,160);
+    ctx.arc(160,160,150,i*arc,(i+1)*arc);
+    ctx.lineTo(160,160);
+    ctx.fill();
+    ctx.save();
+    ctx.translate(160,160);
+    ctx.rotate(i*arc + arc/2);
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#000";
+    ctx.font = "bold 20px Arial";
+    ctx.fillText(discounts[i] + "%", 130, 10);
+    ctx.restore();
+  }
+}
+drawWheel();
+
+function alreadyPlayed(){ return localStorage.getItem("played") === "true"; }
+if(alreadyPlayed()){
+  spinBtn.disabled = true;
+  spinBtn.innerText = "✅ আপনি ইতিমধ্যে স্পিন করেছেন";
+}
+
+function startSpin(){
+  if(spinning) return;
+  if(alreadyPlayed()){ alert("আপনি ইতিমধ্যে একবার স্পিন করেছেন!"); return; }
+  const name = document.getElementById("nameInput").value.trim();
+  if(!name){ alert("দয়া করে আপনার নাম লিখুন!"); return; }
+
+  spinning = true;
+  spinSound.play();
+  canvas.classList.add("flash");
+
+  const deg = Math.floor(5000 + Math.random() * 5000);
+  rotation += deg;
+  const duration = 4000;
+  const start = performance.now();
+
+  function animate(now){
+    const progress = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    const angle = rotation * ease;
+    ctx.save();
+    ctx.clearRect(0,0,320,320);
+    ctx.translate(160,160);
+    ctx.rotate(angle * Math.PI / 180);
+    ctx.translate(-160,-160);
+    drawWheel();
+    ctx.restore();
+
+    if(progress < 1) requestAnimationFrame(animate);
+    else finishSpin(name, deg);
+  }
+  requestAnimationFrame(animate);
+}
+
+function finishSpin(name, deg){
+  canvas.classList.remove("flash");
+  winSound.play();
+  const actualDeg = deg % 360;
+  const segAngle = 360 / discounts.length;
+  const index = Math.floor(discounts.length - (actualDeg / segAngle)) % discounts.length;
+  const discount = discounts[index];
+  document.getElementById("result").innerHTML = `🎉 অভিনন্দন <b>${name}</b>! আপনি পেয়েছেন <span style='color:#9efc75'>${discount}%</span> ডিসকাউন্ট!`;
+  localStorage.setItem("played","true");
+  saveResult(name, discount);
+  spinBtn.disabled = true;
+  spinBtn.innerText = "✅ স্পিন সম্পন্ন হয়েছে";
+  spinning = false;
+}
+
+function saveResult(name, discount){
+  const log = `${new Date().toLocaleString('bn-BD')} | ${name} | ${discount}%\n`;
+  const blob = new Blob([log], {type:"text/plain"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "result_log.txt";
+  a.click();
+}
+</script>
+</body>
+</html>
